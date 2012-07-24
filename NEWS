@@ -3,5 +3,3 @@ Release 2.1.0-dev
 
  API changes
 
- - Add 'gn' parameter to name geometry column for GeoJSON format
-

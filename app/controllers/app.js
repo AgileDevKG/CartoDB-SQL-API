@@ -50,7 +50,7 @@ function handleQuery(req, res) {
     var offset    = parseInt(req.query.page);
     var format    = req.query.format;
     var dp        = req.query.dp; // decimal point digits (defaults to 6)
-    var gn        = req.query.gn; // geometry column name (defaults to "the_geom")
+    var gn        = "the_geom"; // TODO: read from configuration file 
 
     // sanitize and apply defaults to input
     dp        = (dp       === "" || _.isUndefined(dp))       ? '6'  : dp;
@@ -59,7 +59,6 @@ function handleQuery(req, res) {
     database  = (database === "" || _.isUndefined(database)) ? null : database;
     limit     = (_.isNumber(limit))  ? limit : null;
     offset    = (_.isNumber(offset)) ? offset * limit : null;
-    gn        = (gn       === "" || _.isUndefined(gn))       ? 'the_geom' : gn;
 
     // setup step run
     var start = new Date().getTime();
