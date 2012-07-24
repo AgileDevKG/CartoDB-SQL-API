@@ -3,3 +3,11 @@ Release 2.1.0-dev
 
  API changes
 
+Release 2.0.0 (v2)
+2012-??-??
+
+ API changes:
+
+ - Add caching capabilities
+
+ Other changes:
