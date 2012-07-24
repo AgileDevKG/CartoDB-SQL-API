@@ -48,6 +48,7 @@ function handleQuery(req, res) {
     var offset    = parseInt(req.query.page);
     var format    = req.query.format;
     var dp        = req.query.dp;
+    var gn        = req.query.gn; // geometry column name
 
     // sanitize and apply defaults to input
     dp        = (dp       === "" || _.isUndefined(dp))       ? '6'  : dp;
@@ -56,6 +57,7 @@ function handleQuery(req, res) {
     database  = (database === "" || _.isUndefined(database)) ? null : database;
     limit     = (_.isNumber(limit))  ? limit : null;
     offset    = (_.isNumber(offset)) ? offset * limit : null;
+    gn        = (gn       === "" || _.isUndefined(gn))       ? 'the_geom' : gn;
 
     // setup step run
     var start = new Date().getTime();
@@ -126,7 +128,7 @@ function handleQuery(req, res) {
 
                 // TODO: refactor formats to external object
                 if (format === 'geojson'){
-                    sql = ['SELECT *, ST_AsGeoJSON(the_geom,',dp,') as the_geom FROM (', sql, ') as foo'].join("");
+                    sql = ['SELECT *, ST_AsGeoJSON(' + gn + ',',dp,') as ' + gn + ' FROM (', sql, ') as foo'].join("");
                 }
 
                 pg.query(sql, this);
@@ -153,7 +155,7 @@ function handleQuery(req, res) {
 
                 // TODO: refactor formats to external object
                 if (format === 'geojson'){
-                    toGeoJSON(result, res, this);
+                    toGeoJSON(result.rows, gn, this);
                 } else if (format === 'csv'){
                     toCSV(result, res, this);
                 } else {
@@ -196,20 +198,27 @@ function handleCacheStatus(req, res){
 }
 
 // helper functions
-function toGeoJSON(data, res, callback){
+//
+// @param rows array of row objects (keyed after field name)
+// @param gn name of the geometry column (row key)
+// @param callback function(err,payload) payload will be GeoJSON
+//
+function toGeoJSON(rows, gn, callback){
     try{
         var out = {
             type: "FeatureCollection",
             features: []
         };
 
-        _.each(data.rows, function(ele){
+        _.each(rows, function(ele){
             var geojson = {
                 type: "Feature",
                 properties: { },
                 geometry: { }
             };
-            geojson.geometry = JSON.parse(ele["the_geom"]);
+            geojson.geometry = JSON.parse(ele[gn]);
+            delete ele[gn];
+            // TODO: stop hard-coding these
             delete ele["the_geom"];
             delete ele["the_geom_webmercator"];
             geojson.properties = ele;

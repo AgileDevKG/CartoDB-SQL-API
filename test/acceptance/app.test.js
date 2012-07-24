@@ -187,6 +187,46 @@ test('GET /api/v1/sql as geojson with default dp as 6', function(done){
     });
 });
 
+test('GET /api/v1/sql as geojson with missing geometry column', function(done){
+    assert.response(app, {
+        url: '/api/v1/sql?q=SELECT%20cartodb_id%20FROM%20untitle_table_4&format=geojson',
+        headers: {host: 'vizzuality.cartodb.com'},
+        method: 'GET'
+    },{ }, function(res){
+        assert.equal(res.statusCode, 400, res.body);
+        var result = JSON.parse(res.body);
+        assert.deepEqual(result, {error: ['column "the_geom" does not exist']} );
+        done();
+    });
+});
+
+test('GET /api/v1/sql as geojson with missing custom geometry column', function(done){
+    assert.response(app, {
+        url: '/api/v1/sql?q=SELECT%20the_geom%20as%20the_geom%20FROM%20untitle_table_4&format=geojson&gn=mygeom',
+        headers: {host: 'vizzuality.cartodb.com'},
+        method: 'GET'
+    },{ }, function(res){
+        assert.equal(res.statusCode, 400, res.body);
+        var result = JSON.parse(res.body);
+        assert.deepEqual(result, {error: ['column "mygeom" does not exist']} );
+        done();
+    });
+});
+
+test('GET /api/v1/sql as geojson with custom geometry column', function(done){
+    assert.response(app, {
+        url: '/api/v1/sql?q=SELECT%20the_geom%20as%20mygeom%20FROM%20untitle_table_4&format=geojson&gn=mygeom',
+        headers: {host: 'vizzuality.cartodb.com'},
+        method: 'GET'
+    },{ }, function(res){
+        assert.equal(res.statusCode, 200, res.body);
+        var result = JSON.parse(res.body);
+        assert.equal(-370, Math.round(result.features[0].geometry.coordinates[0]*100));
+        assert.equal(4042, Math.round(result.features[0].geometry.coordinates[1]*100));
+        done();
+    });
+});
+
 test('GET /api/v1/sql as csv', function(done){
     assert.response(app, {
         url: '/api/v1/sql?q=SELECT%20cartodb_id,ST_AsEWKT(the_geom)%20as%20geom%20FROM%20untitle_table_4%20LIMIT%201&format=csv',
