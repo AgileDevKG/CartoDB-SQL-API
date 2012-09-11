@@ -133,6 +133,7 @@ function handleQuery(req, res) {
                 } else if (format === 'svg'){
                     sql = ['SELECT *, ST_AsSVG(' + gn + ', 0,',dp,') as ' + gn +
                     ', ' + gn + '::box2d as ' + gn + '_box' +
+                    ', ST_Dimension(' + gn + ') as ' + gn + '_dimension' +
                     ' FROM (', sql, ') as foo'].join("");
                 }
 
@@ -250,13 +251,22 @@ function toSVG(rows, gn, callback){
     var out = [];
     _.each(rows, function(ele){
         var g = ele[gn];
+
+        var gdims = ele[gn + '_dimension'];
+
         var thisgeom;
-        if ( g[0] == 'x' || g[0] == 'c' ) {
+        // TODO: add "class" attribute to help with styling ?
+        if ( gdims == '0' ) {
           // NOTE: the circle radius is arbitrary here
-          thisgeom = '<circle r="' + radius + '" ' + g + ' />';
-        } else {
-          thisgeom = '<path d="' + g + '" />';
+          thisgeom = '<circle r="' + radius + '" ' + g;
+        } else if ( gdims == '1' ) {
+          // Avoid filling closed linestrings
+          thisgeom = '<path fill="none" d="' + g + '" ';
+        } else if ( gdims == '2' ) {
+          thisgeom = '<path d="' + g + '" ';
         }
+        // TODO: add an identifier, if any of "cartodb_id", "oid", "id", "gid" are found
+        thisgeom += ' />';
         out.push(thisgeom);
 
         // Parse geometry bounding box: "BOX(x y, X Y)"
@@ -293,6 +303,7 @@ function toSVG(rows, gn, callback){
       root_tag += 'viewBox="' + bbox.xmin + ' ' + (-bbox.ymax) + ' '
                + bbox.width + ' ' + bbox.height + '" '; 
     }
+    root_tag += 'style="fill-opacity:0.5; stroke:#000000" '; 
     root_tag += 'xmlns="http://www.w3.org/2000/svg" version="1.1">';
 
     header_tags.push(root_tag);
