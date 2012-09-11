@@ -150,8 +150,8 @@ test('GET /api/v1/sql with SVG format', function(done){
         var cd = res.header('Content-Disposition');
         assert.ok(/filename=cartodb-query.svg/gi.test(cd), cd);
         assert.equal(res.header('Content-Type'), 'image/svg+xml; charset=utf-8');
-        assert.ok( res.body.indexOf('<path d="M 420 200 L 220 400 20 200 220 0 Z" />') > 0, res.body );
-        assert.ok( res.body.indexOf('<circle r="20" cx="600" cy="200" />') > 0, res.body );
+        assert.ok( res.body.indexOf('<path d="M 420 200 L 220 400 20 200 220 0 Z"') > 0, res.body );
+        assert.ok( res.body.indexOf('<circle r="20" cx="600" cy="200"') > 0, res.body );
         done();
     });
 });
