@@ -275,6 +275,7 @@ function toSVG(rows, gn, callback){
         //       ST_AsSVG call (in queryResult)
         //
         var gbbox = ele[gn + '_box'];
+        if ( ! gbbox ) return;
         gbbox = gbbox.match(/BOX\(([^ ]*) ([^ ,]*),([^ ]*) ([^)]*)\)/);
         gbbox = {
           xmin: parseFloat(gbbox[1]),
