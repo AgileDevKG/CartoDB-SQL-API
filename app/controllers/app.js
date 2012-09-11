@@ -131,7 +131,9 @@ function handleQuery(req, res) {
                 if (format === 'geojson'){
                     sql = ['SELECT *, ST_AsGeoJSON(' + gn + ',',dp,') as ' + gn + ' FROM (', sql, ') as foo'].join("");
                 } else if (format === 'svg'){
-                    sql = ['SELECT *, ST_AsSVG(' + gn + ', 0,',dp,') as ' + gn + ' FROM (', sql, ') as foo'].join("");
+                    sql = ['SELECT *, ST_AsSVG(' + gn + ', 0,',dp,') as ' + gn +
+                    ', ' + gn + '::box2d as ' + gn + '_box' +
+                    ' FROM (', sql, ') as foo'].join("");
                 }
 
                 pg.query(sql, this);
@@ -243,15 +245,9 @@ function toSVG(rows, gn, callback){
     // radius of circles rendered for point features, in pixels
     var radius = 20;
 
-    var out = [
-        '<?xml version="1.0" standalone="no"?>',
-        '<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">',
-    ];
+    var bbox;
 
-    out.push('<svg ');
-    //out.push('style="stroke:#FF0000" '); 
-    out.push('xmlns="http://www.w3.org/2000/svg" version="1.1">');
-
+    var out = [];
     _.each(rows, function(ele){
         var g = ele[gn];
         var thisgeom;
@@ -262,7 +258,46 @@ function toSVG(rows, gn, callback){
           thisgeom = '<path d="' + g + '" />';
         }
         out.push(thisgeom);
+
+        // Parse geometry bounding box: "BOX(x y, X Y)"
+        // NOTE: the name of the geometry bbox field is
+        //       determined by the same code adding the
+        //       ST_AsSVG call (in queryResult)
+        //
+        var gbbox = ele[gn + '_box'];
+        gbbox = gbbox.match(/BOX\(([^ ]*) ([^ ,]*),([^ ]*) ([^)]*)\)/);
+        gbbox = {
+          xmin: parseFloat(gbbox[1]),
+          ymin: parseFloat(gbbox[2]), 
+          xmax: parseFloat(gbbox[3]),
+          ymax: parseFloat(gbbox[4]) 
+         };
+        if ( ! bbox ) bbox = gbbox
+        else {
+          if ( gbbox.xmin < bbox.xmin ) bbox.xmin = gbbox.xmin;
+          if ( gbbox.ymin < bbox.ymin ) bbox.ymin = gbbox.ymin;
+          if ( gbbox.xmax > bbox.xmax ) bbox.xmax = gbbox.xmax;
+          if ( gbbox.ymax > bbox.ymax ) bbox.ymax = gbbox.ymax;
+        }
     });
+
+    var header_tags = [
+        '<?xml version="1.0" standalone="no"?>',
+        '<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">',
+    ];
+
+    var root_tag = '<svg ';
+    if ( bbox ) {
+      bbox.width = bbox.xmax - bbox.xmin;
+      bbox.height = bbox.ymax - bbox.ymin;
+      root_tag += 'viewBox="' + bbox.xmin + ' ' + (-bbox.ymax) + ' '
+               + bbox.width + ' ' + bbox.height + '" '; 
+    }
+    root_tag += 'xmlns="http://www.w3.org/2000/svg" version="1.1">';
+
+    header_tags.push(root_tag);
+
+    out = header_tags.concat(out);
 
     out.push('</svg>');
 
