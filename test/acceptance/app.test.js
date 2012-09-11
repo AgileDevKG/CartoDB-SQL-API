@@ -134,6 +134,48 @@ test('GET /api/v1/sql with SQL parameter and geojson format, ensuring content-di
     });
 });
 
+test('GET /api/v1/sql with SVG format', function(done){
+    var query = querystring.stringify({
+      q: "SELECT 1 as cartodb_id, st_buffer(st_centroid(ST_MakePoint(220, -200)), 200, 1) AS the_geom " +
+         "UNION ALL " +
+         "SELECT 2, ST_MakePoint(600, -200) ",
+      format: "svg"
+    });
+    assert.response(app, {
+        url: '/api/v1/sql?' + query,
+        headers: {host: 'vizzuality.cartodb.com'},
+        method: 'GET'
+    },{ }, function(res){
+        assert.equal(res.statusCode, 200, res.body);
+        var cd = res.header('Content-Disposition');
+        assert.ok(/filename=cartodb-query.svg/gi.test(cd), cd);
+        assert.equal(res.header('Content-Type'), 'image/svg+xml; charset=utf-8');
+        assert.ok( res.body.indexOf('<path d="M 420 200 L 220 400 20 200 220 0 Z" />') > 0, res.body );
+        assert.ok( res.body.indexOf('<circle r="20" cx="600" cy="200" />') > 0, res.body );
+        done();
+    });
+});
+
+test('GET /api/v1/sql with SVG format and trimmed decimals', function(done){
+    var query = querystring.stringify({
+      q: "SELECT 1 as cartodb_id, ST_MakePoint(0.12345678, 0.98765432) AS the_geom ",
+      format: "svg",
+      dp: 2
+    });
+    assert.response(app, {
+        url: '/api/v1/sql?' + query,
+        headers: {host: 'vizzuality.cartodb.com'},
+        method: 'GET'
+    },{ }, function(res){
+        assert.equal(res.statusCode, 200, res.body);
+        var cd = res.header('Content-Disposition');
+        assert.ok(/filename=cartodb-query.svg/gi.test(cd), cd);
+        assert.equal(res.header('Content-Type'), 'image/svg+xml; charset=utf-8');
+        assert.ok( res.body.indexOf('cx="0.12" cy="-0.99"') > 0, res.body );
+        done();
+    });
+});
+
 test('GET /api/v1/sql with SQL parameter and no format, ensuring content-disposition set to json', function(done){
     assert.response(app, {
         url: '/api/v1/sql?q=SELECT%20*%20FROM%20untitle_table_4',

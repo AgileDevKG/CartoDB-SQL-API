@@ -130,6 +130,8 @@ function handleQuery(req, res) {
                 // TODO: refactor formats to external object
                 if (format === 'geojson'){
                     sql = ['SELECT *, ST_AsGeoJSON(' + gn + ',',dp,') as ' + gn + ' FROM (', sql, ') as foo'].join("");
+                } else if (format === 'svg'){
+                    sql = ['SELECT *, ST_AsSVG(' + gn + ', 0,',dp,') as ' + gn + ' FROM (', sql, ') as foo'].join("");
                 }
 
                 pg.query(sql, this);
@@ -157,6 +159,8 @@ function handleQuery(req, res) {
                 // TODO: refactor formats to external object
                 if (format === 'geojson'){
                     toGeoJSON(result.rows, gn, this);
+                } else if (format === 'svg'){
+                    toSVG(result.rows, gn, this);
                 } else if (format === 'csv'){
                     toCSV(result, res, this);
                 } else {
@@ -234,6 +238,38 @@ function toGeoJSON(rows, gn, callback){
     }
 }
 
+function toSVG(rows, gn, callback){
+
+    // radius of circles rendered for point features, in pixels
+    var radius = 20;
+
+    var out = [
+        '<?xml version="1.0" standalone="no"?>',
+        '<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">',
+    ];
+
+    out.push('<svg ');
+    //out.push('style="stroke:#FF0000" '); 
+    out.push('xmlns="http://www.w3.org/2000/svg" version="1.1">');
+
+    _.each(rows, function(ele){
+        var g = ele[gn];
+        var thisgeom;
+        if ( g[0] == 'x' || g[0] == 'c' ) {
+          // NOTE: the circle radius is arbitrary here
+          thisgeom = '<circle r="' + radius + '" ' + g + ' />';
+        } else {
+          thisgeom = '<path d="' + g + '" />';
+        }
+        out.push(thisgeom);
+    });
+
+    out.push('</svg>');
+
+    // return payload
+    callback(null, out.join("\n"));
+}
+
 function toCSV(data, res, callback){
     try{
         // pull out keys for column headers
@@ -254,8 +290,11 @@ function getContentDisposition(format){
     if (format === 'geojson'){
         ext = 'geojson';
     }
-    if (format === 'csv'){
+    else if (format === 'csv'){
         ext = 'csv';
+    }
+    else if (format === 'svg'){
+        ext = 'svg';
     }
     var time = new Date().toUTCString();
     return 'inline; filename=cartodb-query.' + ext + '; modification-date="' + time + '";';
@@ -265,6 +304,9 @@ function getContentType(format){
     var type = "application/json; charset=utf-8";
     if (format === 'csv'){
         type = "text/csv; charset=utf-8";
+    }
+    else if (format === 'svg'){
+        type = "image/svg+xml; charset=utf-8";
     }
     return type;
 }
