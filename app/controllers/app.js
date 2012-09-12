@@ -299,6 +299,12 @@ function toSVG(rows, gn, callback){
 
     var root_tag = '<svg ';
     if ( bbox ) {
+      // expand box by "radius" + "stroke-width"
+      var growby = radius+1;
+      bbox.xmin -= growby;
+      bbox.ymin -= growby;
+      bbox.xmax += growby;
+      bbox.ymax += growby;
       bbox.width = bbox.xmax - bbox.xmin;
       bbox.height = bbox.ymax - bbox.ymin;
       root_tag += 'viewBox="' + bbox.xmin + ' ' + (-bbox.ymax) + ' '
