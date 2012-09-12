@@ -243,31 +243,29 @@ function toGeoJSON(rows, gn, callback){
 
 function toSVG(rows, gn, callback){
 
-    // radius of circles rendered for point features, in pixels
-    var radius = 20;
+    var radius = 0.005; // as a fraction of max extent dimension
+    var stroke_width = 0.0002; // as a fraction of max extent dimension
+    var fill_opacity = 0.5; // 0.0 is fully transparent, 1.0 is fully opaque
+    var stroke_color = 'black';
 
-    var bbox;
-
-    var out = [];
+    var bbox; // will be computed during the results scan
+    var polys = [];
+    var lines = [];
+    var points = [];
     _.each(rows, function(ele){
         var g = ele[gn];
-
         var gdims = ele[gn + '_dimension'];
 
-        var thisgeom;
+        // TODO: add an identifier, if any of "cartodb_id", "oid", "id", "gid" are found
         // TODO: add "class" attribute to help with styling ?
         if ( gdims == '0' ) {
-          // NOTE: the circle radius is arbitrary here
-          thisgeom = '<circle r="' + radius + '" ' + g;
+          points.push('<circle r="[RADIUS]" ' + g + ' />');
         } else if ( gdims == '1' ) {
           // Avoid filling closed linestrings
-          thisgeom = '<path fill="none" d="' + g + '" ';
+          lines.push('<path fill="none" d="' + g + '" />');
         } else if ( gdims == '2' ) {
-          thisgeom = '<path d="' + g + '" ';
+          polys.push('<path d="' + g + '" />');
         }
-        // TODO: add an identifier, if any of "cartodb_id", "oid", "id", "gid" are found
-        thisgeom += ' />';
-        out.push(thisgeom);
 
         // Parse geometry bounding box: "BOX(x y, X Y)"
         // NOTE: the name of the geometry bbox field is
@@ -292,6 +290,23 @@ function toSVG(rows, gn, callback){
         }
     });
 
+    if ( bbox ) {
+      // Compute radius and stroke width based on bounding box
+      var width = bbox.xmax - bbox.xmin;
+      var height = bbox.ymax - bbox.ymin;
+      var maxsz = width > height ? width : height;
+      if ( maxsz ) { // can be zero for a single point
+        radius = radius * maxsz;
+        stroke_width = stroke_width * maxsz;
+      }
+      //console.log("maxsz:"+maxsz+", radius:"+radius+", stroke_width: "+stroke_width);
+    }
+
+    // Set point radius
+    for (var i=0; i<points.length; ++i) {
+      points[i] = points[i].replace('[RADIUS]', radius);
+    }
+
     var header_tags = [
         '<?xml version="1.0" standalone="no"?>',
         '<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">',
@@ -300,7 +315,8 @@ function toSVG(rows, gn, callback){
     var root_tag = '<svg ';
     if ( bbox ) {
       // expand box by "radius" + "stroke-width"
-      var growby = radius+1;
+      // TODO: use a Box2d class for these ops
+      var growby = radius+stroke_width;
       bbox.xmin -= growby;
       bbox.ymin -= growby;
       bbox.xmax += growby;
@@ -310,12 +326,15 @@ function toSVG(rows, gn, callback){
       root_tag += 'viewBox="' + bbox.xmin + ' ' + (-bbox.ymax) + ' '
                + bbox.width + ' ' + bbox.height + '" '; 
     }
-    root_tag += 'style="fill-opacity:0.5; stroke:#000000" '; 
+    root_tag += 'style="fill-opacity:' + fill_opacity
+              + '; stroke:' + stroke_color
+              + '; stroke-width:' + stroke_width + '" '; 
     root_tag += 'xmlns="http://www.w3.org/2000/svg" version="1.1">';
 
     header_tags.push(root_tag);
 
-    out = header_tags.concat(out);
+    // Render points on top of lines and lines on top of polys
+    var out = header_tags.concat(polys, lines, points);
 
     out.push('</svg>');
 
