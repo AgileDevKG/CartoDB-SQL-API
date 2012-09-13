@@ -244,9 +244,14 @@ function toGeoJSON(rows, gn, callback){
 function toSVG(rows, gn, callback){
 
     var radius = 0.005; // as a fraction of max extent dimension
-    var stroke_width = 0.0002; // as a fraction of max extent dimension
-    var fill_opacity = 0.5; // 0.0 is fully transparent, 1.0 is fully opaque
+    var stroke_width = // 0.0002; // as a fraction of max extent dimension
+                       //0.001953125; // 2 pixels at 1024
+                       0.0009765625; // 1 pixel at 1024
     var stroke_color = 'black';
+    // fill settings affect polygons and points (circles)
+    var fill_opacity = 0.5; // 0.0 is fully transparent, 1.0 is fully opaque
+                            // unused if fill_color='none'
+    var fill_color = 'none'; // affects polygons and circles
 
     var bbox; // will be computed during the results scan
     var polys = [];
@@ -262,7 +267,10 @@ function toSVG(rows, gn, callback){
           points.push('<circle r="[RADIUS]" ' + g + ' />');
         } else if ( gdims == '1' ) {
           // Avoid filling closed linestrings
-          lines.push('<path fill="none" d="' + g + '" />');
+          var linetag = '<path ';
+          if ( fill_color != 'none' ) linetag += 'fill="none" '
+          linetag += 'd="' + g + '" />';
+          lines.push(linetag);
         } else if ( gdims == '2' ) {
           polys.push('<path d="' + g + '" />');
         }
@@ -328,7 +336,9 @@ function toSVG(rows, gn, callback){
     }
     root_tag += 'style="fill-opacity:' + fill_opacity
               + '; stroke:' + stroke_color
-              + '; stroke-width:' + stroke_width + '" '; 
+              + '; stroke-width:' + stroke_width
+              + '; fill:' + fill_color
+              + '" ';
     root_tag += 'xmlns="http://www.w3.org/2000/svg" version="1.1">';
 
     header_tags.push(root_tag);
