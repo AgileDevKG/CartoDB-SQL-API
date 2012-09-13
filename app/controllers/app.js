@@ -259,6 +259,7 @@ function toSVG(rows, gn, callback){
     var points = [];
     _.each(rows, function(ele){
         var g = ele[gn];
+        if ( ! g ) return; // null or empty
         var gdims = ele[gn + '_dimension'];
 
         // TODO: add an identifier, if any of "cartodb_id", "oid", "id", "gid" are found
