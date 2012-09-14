@@ -148,7 +148,7 @@ function handleQuery(req, res) {
                         + '_dimension, ST_AsSVG(ST_TransScale(' + gn + ', '
                         + '-x0, -y0, s, s)' +
 ', 0, ' + dp + ') as ' + gn + ' FROM trans, extent, source';
-                    console.log(sql);
+                    //console.log(sql);
                 }
 
                 pg.query(sql, this);
