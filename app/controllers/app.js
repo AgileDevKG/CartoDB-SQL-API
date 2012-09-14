@@ -51,6 +51,9 @@ function handleQuery(req, res) {
     var format    = req.query.format;
     var dp        = req.query.dp; // decimal point digits (defaults to 6)
     var gn        = "the_geom"; // TODO: read from configuration file 
+    var svg_width  = 1024.0;
+    var svg_height = 768.0;
+
 
     // sanitize and apply defaults to input
     dp        = (dp       === "" || _.isUndefined(dp))       ? '6'  : dp;
@@ -131,10 +134,21 @@ function handleQuery(req, res) {
                 if (format === 'geojson'){
                     sql = ['SELECT *, ST_AsGeoJSON(' + gn + ',',dp,') as ' + gn + ' FROM (', sql, ') as foo'].join("");
                 } else if (format === 'svg'){
-                    sql = ['SELECT *, ST_AsSVG(' + gn + ', 0,',dp,') as ' + gn +
-                    ', ' + gn + '::box2d as ' + gn + '_box' +
-                    ', ST_Dimension(' + gn + ') as ' + gn + '_dimension' +
-                    ' FROM (', sql, ') as foo'].join("");
+                    var svg_ratio = svg_width/svg_height;
+                    sql = 'WITH source AS ( ' + sql + '), extent AS ( ' 
+                        + ' SELECT ST_Extent(' + gn + ') AS e FROM source '
+                        + '), trans AS ( SELECT CASE WHEN ' + svg_ratio
+                        + ' <= ((st_xmax(e)-st_xmin(e)) / '
+                        + ' (st_ymax(e)-st_ymin(e))) THEN ('
+                        + svg_width + '/(st_xmax(e)-st_xmin(e)) ) ELSE ('
+                        + svg_height + '/(st_ymax(e)-st_ymin(e))) END as s '
+                        + ', st_xmin(e) as x0, st_ymin(e) as y0 FROM extent ) '
+                        + 'SELECT st_TransScale(e, -x0, -y0, s, s)::box2d as '
+                        + gn + '_box, ST_Dimension(' + gn + ') as ' + gn
+                        + '_dimension, ST_AsSVG(ST_TransScale(' + gn + ', '
+                        + '-x0, -y0, s, s)' +
+', 0, ' + dp + ') as ' + gn + ' FROM trans, extent, source';
+                    console.log(sql);
                 }
 
                 pg.query(sql, this);
