@@ -290,26 +290,20 @@ function toSVG(rows, gn, callback){
           polys.push('<path d="' + g + '" />');
         }
 
-        // Parse geometry bounding box: "BOX(x y, X Y)"
-        // NOTE: the name of the geometry bbox field is
-        //       determined by the same code adding the
-        //       ST_AsSVG call (in queryResult)
-        //
-        var gbbox = ele[gn + '_box'];
-        if ( ! gbbox ) return;
-        gbbox = gbbox.match(/BOX\(([^ ]*) ([^ ,]*),([^ ]*) ([^)]*)\)/);
-        gbbox = {
-          xmin: parseFloat(gbbox[1]),
-          ymin: parseFloat(gbbox[2]), 
-          xmax: parseFloat(gbbox[3]),
-          ymax: parseFloat(gbbox[4]) 
-         };
-        if ( ! bbox ) bbox = gbbox
-        else {
-          if ( gbbox.xmin < bbox.xmin ) bbox.xmin = gbbox.xmin;
-          if ( gbbox.ymin < bbox.ymin ) bbox.ymin = gbbox.ymin;
-          if ( gbbox.xmax > bbox.xmax ) bbox.xmax = gbbox.xmax;
-          if ( gbbox.ymax > bbox.ymax ) bbox.ymax = gbbox.ymax;
+        if ( ! bbox ) { 
+          // Parse layer extent: "BOX(x y, X Y)"
+          // NOTE: the name of the extent field is
+          //       determined by the same code adding the
+          //       ST_AsSVG call (in queryResult)
+          //
+          bbox = ele[gn + '_box'];
+          bbox = bbox.match(/BOX\(([^ ]*) ([^ ,]*),([^ ]*) ([^)]*)\)/);
+          bbox = {
+            xmin: parseFloat(bbox[1]),
+            ymin: parseFloat(bbox[2]), 
+            xmax: parseFloat(bbox[3]),
+            ymax: parseFloat(bbox[4]) 
+           };
         }
     });
 
