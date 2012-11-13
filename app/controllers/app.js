@@ -89,8 +89,9 @@ function handleQuery(req, res) {
     var database  = req.query.database; // TODO: Depricate
     var limit     = parseInt(req.query.rows_per_page);
     var offset    = parseInt(req.query.page);
-    var format    = _.isArray(req.query.format) ? _.last(req.query.format) : req.query.format; 
-    var filename  = req.query.filename;
+    var formatRequested = req.query.format || body.format;
+    var format    = _.isArray(formatRequested) ? _.last(formatRequested) : formatRequested; 
+    var filename  = req.query.filename || body.filename;
     var skipfields = req.query.skipfields ? req.query.skipfields.split(',') : [];
     req.query.skipfields = skipfields; // save back, for toOGR use
     var dp        = req.query.dp; // decimal point digits (defaults to 6)
