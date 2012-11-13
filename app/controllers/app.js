@@ -83,19 +83,19 @@ function handleQuery(req, res) {
     var svg_height = 768.0;
 
     // extract input
-    var body      = (req.body) ? req.body : {};
-    var sql       = req.query.q || body.q; // HTTP GET and POST store in different vars
-    var api_key   = req.query.api_key || body.api_key;
-    var database  = req.query.database; // TODO: Depricate
-    var limit     = parseInt(req.query.rows_per_page);
-    var offset    = parseInt(req.query.page);
-    var formatRequested = req.query.format || body.format;
-    var format    = _.isArray(formatRequested) ? _.last(formatRequested) : formatRequested; 
-    var filename  = req.query.filename || body.filename;
-    var skipfields = req.query.skipfields ? req.query.skipfields.split(',') : [];
-    req.query.skipfields = skipfields; // save back, for toOGR use
-    var dp        = req.query.dp; // decimal point digits (defaults to 6)
-    var gn        = "the_geom"; // TODO: read from configuration file 
+    var body                = (req.body) ? req.body : {};
+    var sql                 = req.query.q || body.q; // HTTP GET and POST store in different vars
+    var api_key             = req.query.api_key || body.api_key;
+    var database            = req.query.database; // TODO: Depricate
+    var limit               = parseInt(req.query.rows_per_page);
+    var offset              = parseInt(req.query.page);
+    var formatRequested     = req.query.format || body.format;
+    var format              = _.isArray(formatRequested) ? _.last(formatRequested) : formatRequested; 
+    var filename            = req.query.filename || body.filename;
+    var skipfields          = req.query.skipfields ? req.query.skipfields.split(',') : [];
+    req.query.skipfields    = skipfields; // save back, for toOGR use
+    var dp                  = req.query.dp; // decimal point digits (defaults to 6)
+    var gn                  = "the_geom"; // TODO: read from configuration file 
     var user_id;
 
     // sanitize and apply defaults to input
